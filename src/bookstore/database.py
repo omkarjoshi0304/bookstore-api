@@ -7,14 +7,22 @@ from bookstore.config import get_settings
 
 settings = get_settings()
 
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,         # Verify connections before use
-    pool_size=10,               # Max persistent connections
-    max_overflow=20,            # Extra connections under load
-    pool_recycle=3600,          # Recycle connections after 1 hour
-    echo=settings.debug,        # SQL logging in debug mode
-)
+connect_args = {}
+engine_kwargs: dict = {
+    "echo": settings.debug,
+}
+
+if settings.database_url.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+else:
+    engine_kwargs.update(
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=3600,
+    )
+
+engine = create_engine(settings.database_url, connect_args=connect_args, **engine_kwargs)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
